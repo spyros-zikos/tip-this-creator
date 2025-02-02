@@ -6,6 +6,8 @@ import {
   stringToUuid,
   type Character,
 } from "@elizaos/core";
+import { tipperPlugin } from "../plugin-tipper/src/index.js";
+// import { LitPlugin } from 'plugin-lit';
 import { bootstrapPlugin } from "@elizaos/plugin-bootstrap";
 import { createNodePlugin } from "@elizaos/plugin-node";
 import { solanaPlugin } from "@elizaos/plugin-solana";
@@ -56,6 +58,7 @@ export function createAgent(
     evaluators: [],
     character,
     plugins: [
+      tipperPlugin,
       bootstrapPlugin,
       nodePlugin,
       character.settings?.secrets?.WALLET_PUBLIC_KEY ? solanaPlugin : null,
