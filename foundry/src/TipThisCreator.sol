@@ -43,8 +43,8 @@ contract TipThisCreator is ReentrancyGuard, Ownable {
         payable(msg.sender).transfer(balance);
     }
 
-    function setFee(uint256 _fee) external onlyOwner {
-        s_fee = _fee;
+    function setFee(uint256 fee) external onlyOwner {
+        s_fee = fee;
     }
 
     // Getters
