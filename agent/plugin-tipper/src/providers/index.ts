@@ -1,2 +1,2 @@
 export * from "./time.ts";
-export * from "./getAddress.ts";
+export * from "./addressProvider.ts";

@@ -1,6 +1,6 @@
 import { Plugin } from "@elizaos/core";
-import { assignAddressAction } from "./actions/assignAddress.js";
-import { addressProvider } from "./providers/getAddress.ts";
+import { tipAction } from "./actions/tipAction.js";
+import { addressProvider } from "./providers/addressProvider.ts";
 // import { continueAction } from "./actions/continue.ts";
 // import { ignoreAction } from "./actions/ignore.ts";
 // import { noneAction } from "./actions/none.ts";
@@ -12,7 +12,7 @@ import { addressProvider } from "./providers/getAddress.ts";
 export const tipperPlugin: Plugin = {
     name: "tipper",
     description: "Agent that tips creators",
-    // actions: [assignAddressAction],
+    actions: [tipAction],
     evaluators: [],
     providers: [addressProvider],
 };
