@@ -11,14 +11,14 @@ import {
     ModelClass,
     State,
 } from "@elizaos/core";
-import { PrivyClient } from '@privy-io/server-auth';
 
+import { getAmountToTip } from "./prompts";
 
 export const tipAction: Action = {
-    name: "TIP",
-    similes: ["TIP_CREATOR", "TIP_THIS_CREATOR", "TIP_CREATOR_NOW", "SEND_ETH_TO_CREATOR", "SEND_ETH"],
+    name: "FREQUENT_ACTION_123",
+    similes: [],
     description:
-        "User tips a content creator by transfer ETH from the user's wallet address to the creator's.",
+        "User tips a content creator by transfer ETH from the user's wallet address to the creator's address.",
     validate: async (runtime: IAgentRuntime, message: Memory) => {
         return true;
     },
@@ -29,9 +29,15 @@ export const tipAction: Action = {
         options: any,
         callback: HandlerCallback
     ) => {
-        const address = "sdf"
-        const text = `Your wallet address is ${address}. Fund it now to get started!`;
+        
+        const amountToTip = await getAmountToTip(runtime, message.content.text, "elizaos", "sdf");
+
+        const creatorUsername = "sdf"
+        const txHash = "sdf"
+        const text = `Your tip was sent successfully to @${creatorUsername}! Here is the transaction hash: ${txHash}`;
         callback({text: text});
+        return true;
+
 
         // const context = `
         // Extract the search term from the user's message. The message is:
@@ -47,7 +53,6 @@ export const tipAction: Action = {
         // })
 
 
-        return true;
     },
     examples: [
         [
