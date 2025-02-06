@@ -17,7 +17,7 @@ contract TipThisCreator is ReentrancyGuard, Ownable {
     mapping(address tipper => address[] creators) private s_tipperToCreators;
     mapping(address creator => address[] tippers) private s_creatorToTippers;
 
-    event Tip(address tipper, address creator, uint256 amount);
+    event Tip(address indexed tipper, address indexed creator, uint256 indexed amount);
 
     error TipThisCreator__InvalidTipAmount(uint256 amount);
     error TipThisCreator__TransferFailed(address from, address to, uint256 value);
