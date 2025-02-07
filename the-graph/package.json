@@ -1,13 +1,13 @@
 {
-  "name": "tip-this-creator",
+  "name": "tipthiscreator-basemainnet",
   "license": "UNLICENSED",
   "scripts": {
     "codegen": "graph codegen",
     "build": "graph build",
-    "deploy": "graph deploy --node https://api.studio.thegraph.com/deploy/ tip-this-creator",
-    "create-local": "graph create --node http://localhost:8020/ tip-this-creator",
-    "remove-local": "graph remove --node http://localhost:8020/ tip-this-creator",
-    "deploy-local": "graph deploy --node http://localhost:8020/ --ipfs http://localhost:5001 tip-this-creator",
+    "deploy": "graph deploy --node https://api.studio.thegraph.com/deploy/ tipthiscreator-basemainnet",
+    "create-local": "graph create --node http://localhost:8020/ tipthiscreator-basemainnet",
+    "remove-local": "graph remove --node http://localhost:8020/ tipthiscreator-basemainnet",
+    "deploy-local": "graph deploy --node http://localhost:8020/ --ipfs http://localhost:5001 tipthiscreator-basemainnet",
     "test": "graph test"
   },
   "dependencies": {
