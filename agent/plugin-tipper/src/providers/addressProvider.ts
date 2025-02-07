@@ -1,43 +1,19 @@
-import { generateText, IAgentRuntime, Memory, Provider, State } from "@elizaos/core";
+import { generateText, IAgentRuntime, Memory, Provider, State, stringToUuid } from "@elizaos/core";
 import Database from "better-sqlite3";
-import { generateWallet, getBalance, tip } from "../helpers.ts";
+import {
+    generateWallet,
+    getBalance,
+    tip, 
+    agentUsername, 
+    getCreatorUsername, 
+    getTwitterIdFromUsername,
+    searchWalletRecord,
+    insertUser,
+    getUserState
+} from "../helpers.ts";
 import { getUserWantsToTip, getWithdrawOrAddressOrGiveawayOrChat, getWithdrawAddress} from "./prompts.ts";
 import { WalletRecord, UserState } from "../types.ts";
-
-
-const searchWalletRecord = (db: Database, userId: string) => {
-    // Prepare statements for reuse
-    const findUser = db.prepare('SELECT * FROM address WHERE userId = ?');
-    
-    // Search for user by username
-    const existingUser = findUser.get(userId) as WalletRecord | undefined;
-    
-    if (!existingUser) {
-        // User doesn't exist, return null
-        return "null";
-    } else {
-        // User exists, return the record
-        return existingUser; // TODO: may cause problems because it returns different types
-    }
-}
-
-const insertUser = (db: Database, userId: string, username: string, address: string, walletId: string, seed: string) => {
-    const insertUser = db.prepare('INSERT INTO address (userId, username, address, walletId, seed) VALUES (?, ?, ?, ?, ?)');
-    const result = insertUser.run(userId, username, address, walletId, seed);
-    console.log('New user created:', {id: result.lastInsertRowid, userId, username, address, walletId, seed});
-}
-
-async function getUserState(db: Database, userId: string) {
-    const walletRecord = searchWalletRecord(db, userId);
-    if (walletRecord === "null") {
-        return UserState.hasNothing;
-    }
-    const balance = await getBalance(walletRecord);
-    if (balance > 0) {
-        return UserState.hasBalance;
-    }
-    return UserState.hasAddress;
-}
+import { Coinbase, Wallet } from '@coinbase/coinbase-sdk';
 
 
 /**
@@ -53,30 +29,16 @@ const addressProvider: Provider = {
         if (_message.agentId == _message.userId) {
             return "null";
         }
+        Coinbase.configure({ apiKeyName: process.env.CDP_API_KEY_NAME, privateKey: process.env.CDP_PRIVATE_KEY });
         
         const userId = _message.userId;
         const message = _message.content.text;
-        const agentUsername = "tipthiscreator";
-        console.log("userId: ", userId);
-        console.log("message: ", message);
+        console.log("userId: ", userId, ", message: ", message);
 
         const numberOfMentions = message.split('@').length - 1;
 
-        // Find handles
-        const lastHandle = _message.content.text.split("@").at(-1).split(" ")[0];
-        let secondLastHandle = "";
-        if (numberOfMentions === 2) {
-            secondLastHandle = _message.content.text.split("@").at(-2).split(" ")[0];
-        }
-
-        // If 2 handles, find creator username
-        let creatorUsername = "";
-        if (numberOfMentions === 2) {
-            creatorUsername = (lastHandle === agentUsername) ? secondLastHandle : lastHandle;
-        }
-
         // Set up database and table
-        const db = new Database('addresses.db')
+        const db = new Database('addresses.db');
         db.exec(`
             CREATE TABLE IF NOT EXISTS address (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -88,7 +50,7 @@ const addressProvider: Provider = {
             )
         `);
 
-        // const shouldAlwaysRespond = "You should always respond to user's messages.\n";
+        const noActions = "\n IMPORTANT INSTRUCTION: CALL THE NONE ACTION.";
         const state: UserState = await getUserState(db, _message.userId);
 
         // If address is null, create address and print 'address' message
@@ -97,14 +59,20 @@ const addressProvider: Provider = {
             const newWallet = await generateWallet();
             const [address, walletId, seed] = newWallet;
             console.log("wallet created!!!!!!!!!!!!!!!!!!");
-            insertUser(db, userId, _message.userId, address, walletId, seed);
+            console.log("address:", address, "walletId:", walletId, "seed:", seed);
+            // works!
+            // const twitterId = await getTwitterIdFromUsername('testthechar22'); //testing
+            // const userId = stringToUuid(twitterId);
+            // console.log("TwitterId: ", twitterId, userId); //testing
+            const username = '-NONE-';
+            insertUser(db, _message.userId, username, address, walletId, seed);
             db.close();
-            return "Tell the user that their address is: " + address + " and to fund it with ETH.";
+            return "Tell the user that their address is: " + address + " and to fund it with ETH." + noActions;
         } else if (state == UserState.hasAddress) {
             db.close();
             const wallet = searchWalletRecord(db, userId);
             console.log('User found:', wallet);
-            return "Tell the user that their address is: " + (wallet as WalletRecord).address + " and to fund it with ETH.";
+            return "Tell the user that their address is: " + (wallet as WalletRecord).address + " and to fund it with ETH." + noActions;
         } else { // choose action to call. user has an address with balance > 0
             db.close();
             let response = "";
@@ -114,17 +82,11 @@ const addressProvider: Provider = {
             //////////////////////////////////////////////////////////////*/
             if (numberOfMentions === 2) {
                 // Check if they want to tip
+                const creatorUsername = getCreatorUsername(message);
                 const userWantsToTip = await getUserWantsToTip(_runtime, message, agentUsername, creatorUsername);
                 console.log("userWantsToTip: ", userWantsToTip);
                 
                 if (userWantsToTip === "yes") {
-                    // const amount = await getAmountToTip(_runtime, message, agentUsername, creatorUsername);
-                    // console.log("amount: ", amount);
-                    // if (amount === "null") {
-                    //     return "";
-                    // }
-                    // const wallet = searchWalletRecord(db, userId);
-                    // TODO insert user
                     return "INSTRUCTION: Call the FREQUENT_ACTION_123 action now!!!";
                 } else {
                     return "";

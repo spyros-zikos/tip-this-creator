@@ -1,4 +1,4 @@
-import { composeContext, elizaLogger, generateText } from "@elizaos/core";
+import { composeContext, elizaLogger, generateText, stringToUuid } from "@elizaos/core";
 import { generateMessageResponse, generateTrueOrFalse } from "@elizaos/core";
 import { booleanFooter, messageCompletionFooter } from "@elizaos/core";
 import {
@@ -12,16 +12,21 @@ import {
     State,
 } from "@elizaos/core";
 
-import { getAmountToTip } from "./prompts";
+import { getAmountToTip } from "./prompts.ts";
+import { agentUsername, generateWallet, getCreatorUsername, getTwitterIdFromUsername, insertUser, networkId, searchWalletRecord, tip } from "../helpers.ts";
+import Database from "better-sqlite3";
+import { Wallet } from "@coinbase/coinbase-sdk";
+import { WalletRecord } from "../types.ts";
 
 export const tipAction: Action = {
     name: "FREQUENT_ACTION_123",
     similes: [],
-    description:
-        "User tips a content creator by transfer ETH from the user's wallet address to the creator's address.",
+    description: "This is the FREQUENT_ACTION_123 action.",
+        // "User tips a content creator by transfer ETH from the user's wallet address to the creator's address.",
     validate: async (runtime: IAgentRuntime, message: Memory) => {
         return true;
     },
+
     handler: async (
         runtime: IAgentRuntime,
         message: Memory,
@@ -29,11 +34,46 @@ export const tipAction: Action = {
         options: any,
         callback: HandlerCallback
     ) => {
-        
-        const amountToTip = await getAmountToTip(runtime, message.content.text, "elizaos", "sdf");
+        // const defaultTipAmount = "0.00036"; // ~ $1
+        const defaultTipAmount = "1e-6"; // for testing
 
-        const creatorUsername = "sdf"
-        const txHash = "sdf"
+        const creatorUsername = getCreatorUsername(message.content.text);
+
+        const creatorTwitterId = await getTwitterIdFromUsername(creatorUsername);
+        const creatorUserId = stringToUuid(creatorTwitterId);
+        console.log(creatorTwitterId);
+        console.log(creatorUserId);
+
+        // search for creators's wallet, if it doesn't exist, create one and store it
+        const db = new Database('addresses.db');
+        let creatorWallet = searchWalletRecord(db, creatorUserId);
+        let address, walletId, seed;
+        if (creatorWallet === "null") {
+            [address, walletId, seed] = await generateWallet();
+            insertUser(db, message.userId, creatorUsername, address, walletId, seed);
+        } else {
+            creatorWallet = creatorWallet as WalletRecord;
+            address = creatorWallet.address;
+            walletId = creatorWallet.walletId;
+            seed = creatorWallet.seed;
+            // TODO: could update wallet username
+        }
+
+        // Get tip amount
+        let amountToTip = await getAmountToTip(runtime, message.content.text, agentUsername, creatorUsername);
+        console.log("amountToTip: ", amountToTip);
+
+        if (amountToTip === "null") {
+            amountToTip = defaultTipAmount;
+        }
+
+        // Get user's wallet
+        const walletRecord = searchWalletRecord(db, message.userId) as WalletRecord;
+        const userWallet = await Wallet.import({walletId: walletRecord.walletId, seed: walletRecord.seed, networkId: networkId});
+
+        // Make smart contract transaction
+        const txHash = tip(userWallet, address, parseFloat(amountToTip));
+
         const text = `Your tip was sent successfully to @${creatorUsername}! Here is the transaction hash: ${txHash}`;
         callback({text: text});
         return true;
@@ -52,53 +92,19 @@ export const tipAction: Action = {
         //     stop: ["\n"],
         // })
 
-
     },
     examples: [
         [
             {
                 user: "{{user1}}",
                 content: {
-                    text: "tip this creator",
+                    text: "(Invalid)",
                 },
             },
             {
                 user: "{{user2}}",
-                content: { text: "sure!", action: "TIP" },
+                content: { text: "" },
             },
         ],
-
-        [
-            {
-                user: "{{user1}}",
-                content: {
-                    text: "hi",
-                },
-            },
-            {
-                user: "{{user2}}",
-                content: {
-                    text: "Thanks for the tip!",
-                    action: "TIP"
-                },
-            },
-        ],
-
-        [
-            {
-                user: "{{user1}}",
-                content: {
-                    text: "Whatever",
-                },
-            },
-            {
-                user: "{{user2}}",
-                content: {
-                    text: "Thank you for the tip!",
-                    action: "TIP",
-                },
-            },
-        ],
-
     ] as ActionExample[][],
 } as Action;

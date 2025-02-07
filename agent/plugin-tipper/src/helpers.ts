@@ -1,21 +1,21 @@
 import { Coinbase, Wallet } from '@coinbase/coinbase-sdk';
 import { contractABI } from './abi.ts';
-import { WalletRecord } from './types.ts';
+import { WalletRecord, UserState } from './types.ts';
+import Database from "better-sqlite3";
 
 
 /*//////////////////////////////////////////////////////////////
                         WALLET MANAGEMENT
 //////////////////////////////////////////////////////////////*/
 
-Coinbase.configure({ apiKeyName: process.env.CDP_API_KEY_NAME, privateKey: process.env.CDP_PRIVATE_KEY });
-
 const contractAddress = "0x1235fd2d8e417db68c2ea4179fe53d328ffd5238";
-const networkId = Coinbase.networks.BaseMainnet;
+Coinbase.configure({ apiKeyName: process.env.CDP_API_KEY_NAME, privateKey: process.env.CDP_PRIVATE_KEY });
+export const networkId = Coinbase.networks.BaseMainnet;
 
 export const generateWallet = async () => {
-    const wallet = await Wallet.create({networkId: networkId});
+    const wallet = await Wallet.create({networkId: networkId, intervalSeconds: 2, timeoutSeconds: 20});
     const defaultAddress = await wallet.getDefaultAddress();
-    const address = defaultAddress.toString().split("'")[1];
+    const address = defaultAddress.getId();
     const walletId = wallet.getId();
     const seed = wallet.export().seed;
     return [address, walletId, seed];
@@ -49,30 +49,88 @@ export async function tip(wallet: Wallet, creatorAddress: string, amount: number
 };
 
 /*//////////////////////////////////////////////////////////////
+                                DB
+//////////////////////////////////////////////////////////////*/
+
+export const searchWalletRecord = (db: Database, userId: string) => {
+    // Prepare statements for reuse
+    const findUser = db.prepare('SELECT * FROM address WHERE userId = ?');
+    
+    // Search for user by username
+    const existingUser = findUser.get(userId) as WalletRecord | undefined;
+    
+    if (!existingUser) {
+        // User doesn't exist, return null
+        return "null";
+    } else {
+        // User exists, return the record
+        return existingUser;
+    }
+}
+
+export const insertUser = (db: Database, userId: string, username: string, address: string, walletId: string, seed: string) => {
+    const insertUser = db.prepare('INSERT INTO address (userId, username, address, walletId, seed) VALUES (?, ?, ?, ?, ?)');
+    const result = insertUser.run(userId, username, address, walletId, seed);
+    console.log('New user created:', {id: result.lastInsertRowid, userId, username, address, walletId, seed});
+}
+
+export async function getUserState(db: Database, userId: string) {
+    const walletRecord = searchWalletRecord(db, userId);
+    if (walletRecord === "null") {
+        return UserState.hasNothing;
+    }
+    const balance = await getBalance(walletRecord);
+    if (balance > 0) {
+        return UserState.hasBalance;
+    }
+    return UserState.hasAddress;
+}
+
+/*//////////////////////////////////////////////////////////////
                             TWITTER API
 //////////////////////////////////////////////////////////////*/
 
-export function getUsernameFromTwitterId(id: string) {
-    fetch(`https://api.socialdata.tools/twitter/user/${id}`, {
-        method: 'GET',
-        headers: {
-        'Authorization': `Bearer ${process.env.SOCIALDATA_BEARER_TOKEN}`
-        }
-    })
-    .then(response => response.json())
-    .then(data => console.log(data.screen_name))
-    .catch(error => console.error('Error:', error));
+// export async function getUsernameFromTwitterId(id: string): Promise<string> {
+//     try {
+//         const response = await fetch(`https://api.socialdata.tools/twitter/user/${id}`, {
+//             method: 'GET',
+//             headers: {
+//                 'Authorization': `Bearer ${process.env.SOCIALDATA_BEARER_TOKEN}`
+//             }
+//         });
+        
+//         const data = await response.json();
+//         return data.screen_name;
+//     } catch (error) {
+//         console.error('Error:', error);
+//         throw error;
+//     }
+// }
+
+export async function getTwitterIdFromUsername(username: string): Promise<string> {
+    try {
+        const response = await fetch(`https://api.socialdata.tools/twitter/user/${username}`, {
+            method: 'GET',
+            headers: { 'Authorization': `Bearer ${process.env.SOCIALDATA_BEARER_TOKEN}` }
+        });
+        
+        const data = await response.json();
+        return data.id_str;
+    } catch (error) {
+        console.error('Error:', error);
+        throw error; // Re-throw the error so calling code can handle it
+    }
 }
 
-export function getTwitterIdFromUsername(username: string) {
-    fetch(`https://api.socialdata.tools/twitter/user/${username}`, {
-        method: 'GET',
-        headers: {
-        'Authorization': `Bearer ${process.env.SOCIALDATA_BEARER_TOKEN}`
-        }
-    })
-    .then(response => response.json())
-    .then(data => console.log(data.id_str))
-    .catch(error => console.error('Error:', error));
-}
+/*//////////////////////////////////////////////////////////////
+                            USERNAMES
+//////////////////////////////////////////////////////////////*/
 
+export const agentUsername = "tipthiscreator";
+
+export function getCreatorUsername(message: string) {
+    const lastHandle = message.split("@").at(-1).split(" ")[0];
+    const secondLastHandle = message.split("@").at(-2).split(" ")[0];
+    const creatorUsername = (lastHandle === agentUsername) ? secondLastHandle : lastHandle;
+    return creatorUsername;
+}
