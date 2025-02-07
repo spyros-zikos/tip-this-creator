@@ -1,0 +1,29 @@
+specVersion: 1.0.0
+indexerHints:
+  prune: auto
+schema:
+  file: ./schema.graphql
+dataSources:
+  - kind: ethereum
+    name: TipThisCreator
+    network: base
+    source:
+      address: "0x1235fd2d8e417db68c2ea4179fe53d328ffd5238"
+      abi: TipThisCreator
+      startBlock: 26043052
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - OwnershipTransferred
+        - Tip
+      abis:
+        - name: TipThisCreator
+          file: ./abis/TipThisCreator.json
+      eventHandlers:
+        - event: OwnershipTransferred(indexed address,indexed address)
+          handler: handleOwnershipTransferred
+        - event: Tip(indexed address,indexed address,indexed uint256)
+          handler: handleTip
+      file: ./src/tip-this-creator.ts
