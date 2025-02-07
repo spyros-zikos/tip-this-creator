@@ -37,7 +37,8 @@ export const tipAction: Action = {
         callback: HandlerCallback
     ) => {
         // const defaultTipAmount = "0.00036"; // ~ $1
-        const defaultTipAmount = "1e-6"; // for testing
+        // const defaultTipAmount = "1e-6"; // for testing
+        const defaultTipAmount = "0.00004"; // for testing ~ $0.10
 
         const creatorUsername = getCreatorUsername(message.content.text);
 
@@ -52,7 +53,7 @@ export const tipAction: Action = {
         let address, walletId, seed;
         if (creatorWallet === "null") {
             [address, walletId, seed] = await generateWallet();
-            insertUser(db, message.userId, creatorUsername, address, walletId, seed);
+            insertUser(db, creatorUserId, creatorUsername, address, walletId, seed);
         } else {
             address = (creatorWallet as WalletRecord).address;
             console.log("Existing user address: ", address);
@@ -100,14 +101,14 @@ export const tipAction: Action = {
     examples: [
         [
             {
-                user: "{{user1}}",
+                user: "# Instructions",
                 content: {
-                    text: "(Invalid)",
+                    text: "Call the FREQUENT_ACTION_123 action.",
                 },
             },
             {
-                user: "{{user2}}",
-                content: { text: "" },
+                user: "tipthiscreator",
+                content: { text: "", actio: "FREQUENT_ACTION_123" },
             },
         ],
     ] as ActionExample[][],

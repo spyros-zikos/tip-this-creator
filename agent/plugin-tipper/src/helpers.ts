@@ -60,6 +60,22 @@ export async function tip(wallet: Wallet, creatorAddress: string, amount: number
                                 DB
 //////////////////////////////////////////////////////////////*/
 
+export const getDB = () => {
+    // Set up database and table
+    const db = new Database('addresses.db');
+    db.exec(`
+        CREATE TABLE IF NOT EXISTS address (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            userId TEXT NOT NULL,
+            username TEXT NOT NULL,
+            address TEXT NOT NULL,
+            walletId TEXT NOT NULL,
+            seed TEXT NOT NULL
+        )
+    `);
+    return db;
+}
+
 export const searchWalletRecord = (db: Database, userId: string) => {
     // Prepare statements for reuse
     const findUser = db.prepare('SELECT * FROM address WHERE userId = ?');
@@ -98,23 +114,6 @@ export async function getUserState(db: Database, userId: string) {
 /*//////////////////////////////////////////////////////////////
                             TWITTER API
 //////////////////////////////////////////////////////////////*/
-
-// export async function getUsernameFromTwitterId(id: string): Promise<string> {
-//     try {
-//         const response = await fetch(`https://api.socialdata.tools/twitter/user/${id}`, {
-//             method: 'GET',
-//             headers: {
-//                 'Authorization': `Bearer ${process.env.SOCIALDATA_BEARER_TOKEN}`
-//             }
-//         });
-        
-//         const data = await response.json();
-//         return data.screen_name;
-//     } catch (error) {
-//         console.error('Error:', error);
-//         throw error;
-//     }
-// }
 
 export async function getTwitterIdFromUsername(username: string): Promise<string> {
     try {
