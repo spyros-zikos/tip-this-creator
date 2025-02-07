@@ -21,15 +21,23 @@ export const generateWallet = async () => {
     return [address, walletId, seed];
 }
 
-export const getBalance = async (walletRecord: WalletRecord) => {
-    const wallet = await Wallet.import({walletId: walletRecord.walletId, seed: walletRecord.seed, networkId: networkId});
+export const getBalance = async (wallet: Wallet) => {
     const balance = await wallet.getBalance(Coinbase.assets.Eth);
-    const balanceAdjustedForGas = parseFloat(balance.toString()) - 0.00005; // ~ $0.15 for gas
+    const balanceAdjustedForGas = parseFloat((parseFloat(balance.toString()) - 0.00002).toString().substring(0, 20)); // ~ $0.05 for gas
+    // const balanceAdjustedForGas = parseFloat(''+balance.toString()) - 0.00002; // ~ $0.05 for gas
     if (balanceAdjustedForGas > 0) {
         return balanceAdjustedForGas;
     }
     return 0;
 }
+
+export async function transfer(wallet: Wallet, destination: string, amount: number) {
+    let transfer = await wallet.createTransfer({ amount: amount, assetId: Coinbase.assets.Eth, destination: destination });
+    transfer = await transfer.wait({ intervalSeconds: 2, timeoutSeconds: 30 });
+    console.log("Transfer hash: ", transfer.getTransactionHash());
+    return transfer.getTransactionHash();
+}
+
 
 export async function tip(wallet: Wallet, creatorAddress: string, amount: number) {
     const contractInvocation = await wallet.invokeContract({
@@ -44,7 +52,7 @@ export async function tip(wallet: Wallet, creatorAddress: string, amount: number
     });
         
     const tx = await contractInvocation.wait();
-    console.log(tx.getTransactionHash());
+    console.log("Transaction hash: ", tx.getTransactionHash());
     return tx.getTransactionHash();
 };
 
@@ -79,7 +87,8 @@ export async function getUserState(db: Database, userId: string) {
     if (walletRecord === "null") {
         return UserState.hasNothing;
     }
-    const balance = await getBalance(walletRecord);
+    const wallet = await Wallet.import({networkId: networkId, walletId: walletRecord.walletId, seed: walletRecord.seed});
+    const balance = await getBalance(wallet);
     if (balance > 0) {
         return UserState.hasBalance;
     }

@@ -60,7 +60,7 @@ export function createAgent(
     plugins: [
       tipperPlugin,
       // bootstrapPlugin,
-      nodePlugin,
+      // nodePlugin,
       character.settings?.secrets?.WALLET_PUBLIC_KEY ? solanaPlugin : null,
     ].filter(Boolean),
     providers: [],

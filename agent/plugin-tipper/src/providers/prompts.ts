@@ -7,6 +7,12 @@ export async function getUserWantsToTip(_runtime: IAgentRuntime, message: string
 
 Here are some examples:
 
+message: @${agentUsername} @${creatorUsername}
+your response: yes
+
+message: @${creatorUsername} @${agentUsername}
+your response: yes
+
 message: @${agentUsername} wants to tip @${creatorUsername}
 your response: yes
 

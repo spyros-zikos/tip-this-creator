@@ -1,4 +1,4 @@
-import { generateText, IAgentRuntime, Memory, Provider, State, stringToUuid } from "@elizaos/core";
+import { generateText, IAgentRuntime, Memory, ModelClass, Provider, State, stringToUuid } from "@elizaos/core";
 import Database from "better-sqlite3";
 import {
     generateWallet,
@@ -9,11 +9,26 @@ import {
     getTwitterIdFromUsername,
     searchWalletRecord,
     insertUser,
-    getUserState
+    getUserState,
+    networkId
 } from "../helpers.ts";
 import { getUserWantsToTip, getWithdrawOrAddressOrGiveawayOrChat, getWithdrawAddress} from "./prompts.ts";
 import { WalletRecord, UserState } from "../types.ts";
 import { Coinbase, Wallet } from '@coinbase/coinbase-sdk';
+
+
+export async function sth(_runtime: IAgentRuntime, message: string, agentUsername: string, creatorUsername: string) {
+    const contextTipOrNot = `Say hello`;
+
+    const response = await generateText({
+        runtime: _runtime,
+        context: contextTipOrNot,
+        modelClass: ModelClass.LARGE,
+        stop: ["\n"],
+    });
+
+    return response;
+}
 
 
 /**
@@ -35,7 +50,6 @@ const addressProvider: Provider = {
         const message = _message.content.text;
         console.log("userId: ", userId, ", message: ", message);
 
-        const numberOfMentions = message.split('@').length - 1;
 
         // Set up database and table
         const db = new Database('addresses.db');
@@ -50,32 +64,36 @@ const addressProvider: Provider = {
             )
         `);
 
-        const noActions = "\n IMPORTANT INSTRUCTION: CALL THE NONE ACTION.";
+        const noActions = "\n CALL THE NONE ACTION WHICH MEANS DON'T DO ANY ACTION.";
+        const noContinue = "\n NEVER CALL THE CONTINUE ACTION.";
         const state: UserState = await getUserState(db, _message.userId);
+        // const sss = await sth(_runtime, message, agentUsername, 'sdfsdf');
+        // console.log("sss: ", sss);
 
         // If address is null, create address and print 'address' message
         if (state == UserState.hasNothing) {
             console.log("wallet will be created!!!!!!!!!!!!!!!!!!");
-            const newWallet = await generateWallet();
-            const [address, walletId, seed] = newWallet;
+            const [address, walletId, seed] = await generateWallet();
             console.log("wallet created!!!!!!!!!!!!!!!!!!");
-            console.log("address:", address, "walletId:", walletId, "seed:", seed);
-            // works!
-            // const twitterId = await getTwitterIdFromUsername('testthechar22'); //testing
-            // const userId = stringToUuid(twitterId);
-            // console.log("TwitterId: ", twitterId, userId); //testing
             const username = '-NONE-';
             insertUser(db, _message.userId, username, address, walletId, seed);
-            db.close();
-            return "Tell the user that their address is: " + address + " and to fund it with ETH." + noActions;
+            // db.close();
+            return `# IMPORTANT INSTRUCTIONS: 
+Tell the user that their address is ${address} and to fund it with ETH.
+${noActions}
+${noContinue}`;
         } else if (state == UserState.hasAddress) {
-            db.close();
             const wallet = searchWalletRecord(db, userId);
             console.log('User found:', wallet);
-            return "Tell the user that their address is: " + (wallet as WalletRecord).address + " and to fund it with ETH." + noActions;
+            return `# IMPORTANT INSTRUCTIONS: 
+Tell the user that their address is ${(wallet as WalletRecord).address} 
+Tell the user that their balance is 0 and to fund their it with ETH.
+${noActions}
+${noContinue}`;
         } else { // choose action to call. user has an address with balance > 0
-            db.close();
             let response = "";
+            const numberOfMentions = message.split('@').length - 1;
+
 
             /*//////////////////////////////////////////////////////////////
                                         TIP
@@ -83,11 +101,13 @@ const addressProvider: Provider = {
             if (numberOfMentions === 2) {
                 // Check if they want to tip
                 const creatorUsername = getCreatorUsername(message);
+                console.log("creatorUsername: ", creatorUsername);
                 const userWantsToTip = await getUserWantsToTip(_runtime, message, agentUsername, creatorUsername);
                 console.log("userWantsToTip: ", userWantsToTip);
                 
                 if (userWantsToTip === "yes") {
-                    return "INSTRUCTION: Call the FREQUENT_ACTION_123 action now!!!";
+                    return `# IMPORTANT INSTRUCTIONS:
+Call the FREQUENT_ACTION_123 action now!!!`;
                 } else {
                     return "";
                 }
@@ -110,15 +130,18 @@ const addressProvider: Provider = {
                 /*//////////////////////////////////////////////////////////////
                                         GET ADDRESS
                 //////////////////////////////////////////////////////////////*/
-                    const wallet = searchWalletRecord(db, userId);
-                    const address = (wallet as WalletRecord).address;
-                    const balance = await getBalance(wallet as WalletRecord);
-                    return "INSTRUCTION: Tell the user that their address is: " + address + " and their balance is " + balance + " ETH.";
+                    const walletRecord = searchWalletRecord(db, userId) as WalletRecord;
+                    const address = walletRecord.address;
+                    const wallet = await Wallet.import({walletId: walletRecord.walletId, seed: walletRecord.seed, networkId: networkId});
+                    const balance = await getBalance(wallet);
+                    return `# IMPORTANT INSTRUCTIONS:
+Tell the user that their address is ${address} and their balance is ${balance} ETH."`;
                 } else if (withdrawOrAddressOrGiveawayOrChat === "giveaway") {
                 /*//////////////////////////////////////////////////////////////
                                         GIVEAWAY
                 //////////////////////////////////////////////////////////////*/
-                    return "INSTRUCTION: Call the BIG_ACTION_123 action now!!!";
+                    return `# IMPORTANT INSTRUCTIONS:
+Call the BIG_ACTION_123 action now!!!`;
                 } else {
                     return "";
                 }

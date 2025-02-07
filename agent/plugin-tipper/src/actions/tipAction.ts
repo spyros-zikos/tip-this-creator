@@ -13,7 +13,7 @@ import {
 } from "@elizaos/core";
 
 import { getAmountToTip } from "./prompts.ts";
-import { agentUsername, generateWallet, getCreatorUsername, getTwitterIdFromUsername, insertUser, networkId, searchWalletRecord, tip } from "../helpers.ts";
+import { agentUsername, generateWallet, getBalance, getCreatorUsername, getTwitterIdFromUsername, insertUser, networkId, searchWalletRecord, tip } from "../helpers.ts";
 import Database from "better-sqlite3";
 import { Wallet } from "@coinbase/coinbase-sdk";
 import { WalletRecord } from "../types.ts";
@@ -24,6 +24,8 @@ export const tipAction: Action = {
     description: "This is the FREQUENT_ACTION_123 action.",
         // "User tips a content creator by transfer ETH from the user's wallet address to the creator's address.",
     validate: async (runtime: IAgentRuntime, message: Memory) => {
+        // const state: UserState = await getUserState(db, _message.userId);
+        
         return true;
     },
 
@@ -52,27 +54,29 @@ export const tipAction: Action = {
             [address, walletId, seed] = await generateWallet();
             insertUser(db, message.userId, creatorUsername, address, walletId, seed);
         } else {
-            creatorWallet = creatorWallet as WalletRecord;
-            address = creatorWallet.address;
-            walletId = creatorWallet.walletId;
-            seed = creatorWallet.seed;
+            address = (creatorWallet as WalletRecord).address;
+            console.log("Existing user address: ", address);
             // TODO: could update wallet username
-        }
-
-        // Get tip amount
-        let amountToTip = await getAmountToTip(runtime, message.content.text, agentUsername, creatorUsername);
-        console.log("amountToTip: ", amountToTip);
-
-        if (amountToTip === "null") {
-            amountToTip = defaultTipAmount;
+            // const twitterId = await getTwitterIdFromUsername('testthechar22'); //testing
+            // const userId = stringToUuid(twitterId);
         }
 
         // Get user's wallet
         const walletRecord = searchWalletRecord(db, message.userId) as WalletRecord;
         const userWallet = await Wallet.import({walletId: walletRecord.walletId, seed: walletRecord.seed, networkId: networkId});
 
+        // Get tip amount
+        let amountToTip = await getAmountToTip(runtime, message.content.text, agentUsername, creatorUsername);
+        console.log("amountToTip: ", amountToTip);
+
+        const balance = await getBalance(userWallet);
+        if (amountToTip === "null")
+            amountToTip = defaultTipAmount;
+        if (balance < parseFloat(amountToTip))
+            amountToTip = balance.toString();
+
         // Make smart contract transaction
-        const txHash = tip(userWallet, address, parseFloat(amountToTip));
+        const txHash = await tip(userWallet, address, parseFloat(amountToTip));
 
         const text = `Your tip was sent successfully to @${creatorUsername}! Here is the transaction hash: ${txHash}`;
         callback({text: text});

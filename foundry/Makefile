@@ -33,6 +33,10 @@ ifeq ($(findstring --network sepolia,$(ARGS)),--network sepolia)
 	NETWORK_ARGS := --rpc-url $(SEPOLIA_RPC_URL) --private-key $(PRIVATE_KEY) --broadcast --verify --etherscan-api-key $(ETHERSCAN_API_KEY) -vvvv
 endif
 
+ifeq ($(findstring --network base,$(ARGS)),--network base)
+	NETWORK_ARGS := --rpc-url $(BASE_RPC_URL) --private-key $(PRIVATE_KEY) --broadcast --verify --etherscan-api-key $(BASESCAN_API_KEY) -vvvv
+endif
+
 # To deploy run: make deployTipThisCreator ARGS="--network sepolia"
 deployTipThisCreator:
 	@forge script script/DeployTipThisCreator.s.sol:DeployTipThisCreator $(NETWORK_ARGS)
