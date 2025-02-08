@@ -61,12 +61,16 @@ Tell the user that their balance is 0 and to fund their it with ETH.`;
             response += noActionsAndNoContinue;
             return response;
         } else { // choose action to call. user has an address with balance > 0
-            const numberOfMentions = message.split('@').length - 1;
+            // const numberOfMentions = message.split('@').length - 1;
+            const usernames = message.split("@").map(e=>e.split(" ")[0]).filter((e,i)=>(e!==agentUsername&&i!=0))
+            const numOfUsernames = usernames.length;
+            console.log("numOfUsernames: ", numOfUsernames);
+            console.log("usernames: ", usernames);
 
             /*//////////////////////////////////////////////////////////////
                                         TIP
             //////////////////////////////////////////////////////////////*/
-            if (numberOfMentions === 2) {
+            if (numOfUsernames === 1) {
                 // Check if they want to tip
                 const creatorUsername = getCreatorUsername(message);
                 console.log("creatorUsername: ", creatorUsername);
@@ -81,7 +85,7 @@ Tell the user that their balance is 0 and to fund their it with ETH.`;
                     return response;
                 }
 
-            } else if (numberOfMentions === 1) {
+            } else if (numOfUsernames === 0) {
                 const withdrawOrAddressOrGiveawayOrChat = await getWithdrawOrAddressOrGiveawayOrChat(_runtime, message, agentUsername);
                 console.log("user want to:", withdrawOrAddressOrGiveawayOrChat);
                 
@@ -121,51 +125,12 @@ Tell the user that their balance is 0 and to fund their it with ETH.`;
                     return response;
                 }
 
-            } else { // numberOfMentions > 2
-                response += noActionsAndNoContinue;
-                return response;
             }
+            //  else { // numberOfMentions > 2
+            //     response += noActionsAndNoContinue;
+            //     return response;
+            // }
         }
-
-
-        // const name = _state.senderName;
-        // console.log("ADDRESS: ", address);
-        // console.log("NAME: ", name, "!!!!");
-        // // return "Include in your response the following text: '" + name + "'s address is: " + address + "'.";
-        // return name + "'s address is: " + address;
-        
-        //==========================================
-
-        // interface UserData {
-        //     senderAddress: string;
-        //     balance: number;
-        // }
-
-        // let response = "User Information Status:\n\n"
-        // const emptyUserData = {
-        //     senderAddress: "",
-        //     balance: 0
-        // };
-
-        // const getCacheKey = (runtime: IAgentRuntime, userId: string): string => {
-        //     return `${runtime.character.name}/${userId}/data`;
-        // };
-
-        // const getMissingFields = () => {
-            
-        // }
-
-        // const cacheKey = getCacheKey(_runtime, _message.userId);
-        // const cachedData = await _runtime.cacheManager.get(cacheKey) || { ...emptyUserData };
-        
-        // const knownFields = Object.entries(cachedData)
-        //     .filter(([key, value]) => value !== undefined)
-        //     .map(([key, value]) => `${key.charAt(0).toUpperCase() + key.slice(1)}: ${value}`);
-
-        // if (knownFields.length > 0) {
-        //     response += "Current Information:\n";
-        //     response += knownFields.map(field => `✔ ${field}`).join("\n");
-        // }
     },
 };
 export { addressProvider };

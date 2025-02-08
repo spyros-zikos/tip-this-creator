@@ -4,6 +4,8 @@ import { tipAction } from "./actions/tipAction.js";
 import { noneAction } from "./actions/none.ts";
 import { continueAction } from "./actions/continue.js";
 import { withdrawAction } from "./actions/withdrawAction.ts";
+import { giveawayAction } from "./actions/giveawayAction.ts";
+import { statsAction } from "./actions/statsAction.ts";
 // import { ignoreAction } from "./actions/ignore.ts";
 // import { timeProvider } from "./providers/time.ts";
 
@@ -13,7 +15,7 @@ import { withdrawAction } from "./actions/withdrawAction.ts";
 export const tipperPlugin: Plugin = {
     name: "tipper",
     description: "Agent that tips creators",
-    actions: [tipAction, withdrawAction, noneAction, continueAction],
+    actions: [tipAction, withdrawAction, giveawayAction, statsAction, noneAction, continueAction],
     evaluators: [],
     providers: [addressProvider],
 };

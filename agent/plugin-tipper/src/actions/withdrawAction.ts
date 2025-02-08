@@ -48,7 +48,7 @@ export const withdrawAction: Action = {
         // Make transfer
         const txHash = await transfer(wallet, withdrawAddress, balance);
 
-        const text = `Your withdrawal was successful! Here is the transaction hash: ${txHash}`;
+        const text = `Your withdrawal was successful! You withdrew ${balance} ETH! Here is the transaction hash: ${txHash}`;
         callback({text: text});
         return true;
     },
@@ -62,7 +62,7 @@ export const withdrawAction: Action = {
             },
             {
                 user: "tipthiscreator",
-                content: { text: "" },
+                content: { text: "", action: "GO_OUT_ACTION_123" },
             },
         ],
     ] as ActionExample[][],
