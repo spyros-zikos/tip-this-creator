@@ -36,7 +36,7 @@ export const giveawayAction: Action = {
     ) => {
         const db = new Database('addresses.db');
 
-        // Get creator's adress
+        // Get creator's (user) adress
         const creatorWalletRecord = searchWalletRecord(db, message.userId) as WalletRecord;
         const creatorAddress = creatorWalletRecord.address;
 

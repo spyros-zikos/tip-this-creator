@@ -24,8 +24,6 @@ export const tipAction: Action = {
     description: "This is the FREQUENT_ACTION_123 action.",
         // "User tips a content creator by transfer ETH from the user's wallet address to the creator's address.",
     validate: async (runtime: IAgentRuntime, message: Memory) => {
-        // const state: UserState = await getUserState(db, _message.userId);
-        
         return true;
     },
 
@@ -41,6 +39,7 @@ export const tipAction: Action = {
         const defaultTipAmount = "0.00004"; // for testing ~ $0.10
 
         const creatorUsername = getCreatorUsername(message.content.text);
+        console.log("Creator username: ", creatorUsername);
 
         const creatorTwitterId = await getTwitterIdFromUsername(creatorUsername);
         const creatorUserId = stringToUuid(creatorTwitterId);

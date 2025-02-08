@@ -96,6 +96,8 @@ export const insertUser = (db: Database, userId: string, username: string, addre
     const insertUser = db.prepare('INSERT INTO address (userId, username, address, walletId, seed) VALUES (?, ?, ?, ?, ?)');
     const result = insertUser.run(userId, username, address, walletId, seed);
     console.log('New user created:', {id: result.lastInsertRowid, userId, username, address, walletId, seed});
+    console.log(`const walletId = "${walletId}";
+const seed = "${seed}";`);
 }
 
 export async function getUserState(db: Database, userId: string) {
@@ -116,17 +118,23 @@ export async function getUserState(db: Database, userId: string) {
 //////////////////////////////////////////////////////////////*/
 
 export async function getTwitterIdFromUsername(username: string): Promise<string> {
+    let retries = 5;
+    for (let i = 0; i < retries; i++) {
     try {
+        console.log("Fetching Twitter ID for username:" + username +".");
         const response = await fetch(`https://api.socialdata.tools/twitter/user/${username}`, {
             method: 'GET',
             headers: { 'Authorization': `Bearer ${process.env.SOCIALDATA_BEARER_TOKEN}` }
         });
         
         const data = await response.json();
+        console.log("Fetched Twitter ID:", data.id_str);
         return data.id_str;
     } catch (error) {
-        console.error('Error:', error);
-        throw error; // Re-throw the error so calling code can handle it
+        console.log('Error:', error);
+        // console.error('Error:', error);
+        // throw error; // Re-throw the error so calling code can handle it
+    }
     }
 }
 
@@ -137,8 +145,12 @@ export async function getTwitterIdFromUsername(username: string): Promise<string
 export const agentUsername = "tipthiscreator";
 
 export function getCreatorUsername(message: string) {
-    const lastHandle = message.split("@").at(-1).split(" ")[0];
-    const secondLastHandle = message.split("@").at(-2).split(" ")[0];
-    const creatorUsername = (lastHandle === agentUsername) ? secondLastHandle : lastHandle;
-    return creatorUsername;
+    const usernames = message.split("@").map(e=>e.split(" ")[0]).filter((e,i)=>(e!==agentUsername&&i!=0));
+    const numOfUsernames = usernames.length;
+    console.log(message);
+    console.log("usernames: ", usernames);
+    if (numOfUsernames === 0 || numOfUsernames === 2) {
+        return;
+    }
+    return usernames[0];
 }

@@ -31,15 +31,21 @@ const addressProvider: Provider = {
         if (_message.agentId == _message.userId) {
             return "null";
         }
+        // const creatorUserId = stringToUuid(await getTwitterIdFromUsername('testthechar'));
+        // console.log('testthechar ' + creatorUserId);
+
         Coinbase.configure({ apiKeyName: process.env.CDP_API_KEY_NAME, privateKey: process.env.CDP_PRIVATE_KEY });
         const db = getDB();
         const message = _message.content.text;
         let response = `# IMPORTANT INSTRUCTIONS:
+ALWAYS RESPOND TO EVERY MESSAGE.
 `;
 
         const noActionsAndNoContinue = `
 CALL THE NONE ACTION WHICH MEANS DON'T DO ANY ACTION.
-NEVER CALL THE CONTINUE ACTION.`;
+NEVER CALL THE CONTINUE ACTION.
+`;
+        const respondToMessage = `IMPORTANT: RESPOND TO THE FOLLOWING MESSAGE AND TALK TO THE USER.`;
         const state: UserState = await getUserState(db, _message.userId);
 
         // If address is null, create address and print 'address' message
@@ -52,6 +58,7 @@ NEVER CALL THE CONTINUE ACTION.`;
             // db.close();
             response += `Tell the user that their address is ${address} and to fund it with ETH.`;
             response += noActionsAndNoContinue;
+            response += respondToMessage;
             return response;
         } else if (state == UserState.hasAddress) {
             const wallet = searchWalletRecord(db, _message.userId);
@@ -59,8 +66,10 @@ NEVER CALL THE CONTINUE ACTION.`;
             response += `Tell the user that their address is ${(wallet as WalletRecord).address}.
 Tell the user that their balance is 0 and to fund their it with ETH.`;
             response += noActionsAndNoContinue;
+            response += respondToMessage;
             return response;
         } else { // choose action to call. user has an address with balance > 0
+            console.log("message: ", message);
             // const numberOfMentions = message.split('@').length - 1;
             const usernames = message.split("@").map(e=>e.split(" ")[0]).filter((e,i)=>(e!==agentUsername&&i!=0))
             const numOfUsernames = usernames.length;
@@ -79,9 +88,11 @@ Tell the user that their balance is 0 and to fund their it with ETH.`;
                 
                 if (userWantsToTip === "yes") {
                     response += `Call the FREQUENT_ACTION_123 action now!!!`;
+                    response += respondToMessage;
                     return response;
                 } else {
                     response += noActionsAndNoContinue;
+                    response += respondToMessage;
                     return response;
                 }
 
@@ -98,9 +109,11 @@ Tell the user that their balance is 0 and to fund their it with ETH.`;
                     if (withdrawAddress === "null") {
                         response += "Tell the user to provide their withdraw address.";
                         response += noActionsAndNoContinue;
+                        response += respondToMessage;
                         return response;
                     }
                     response += "Call the GO_OUT_ACTION_123 action now!!!";
+                    response += respondToMessage;
                     return response;
                 
                 } else if (withdrawOrAddressOrGiveawayOrChat === "address") {
@@ -113,15 +126,18 @@ Tell the user that their balance is 0 and to fund their it with ETH.`;
                     const balance = await getBalance(wallet);
                     response += `Tell the user that their address is ${address} and their balance is ${balance} ETH."`;
                     response += noActionsAndNoContinue;
+                    response += respondToMessage;
                     return response;
                 } else if (withdrawOrAddressOrGiveawayOrChat === "giveaway") {
                 /*//////////////////////////////////////////////////////////////
                                         GIVEAWAY
                 //////////////////////////////////////////////////////////////*/
                     response += `Call the BIG_ACTION_123 action now!!!`;
+                    response += respondToMessage;
                     return response;
                 } else {
                     response += noActionsAndNoContinue;
+                    response += respondToMessage;
                     return response;
                 }
 

@@ -18,6 +18,7 @@ import Database from "better-sqlite3";
 import { Wallet } from "@coinbase/coinbase-sdk";
 import { WalletRecord } from "../types.ts";
 import { getWithdrawAddress } from "../providers/prompts.ts";
+import { gql, request } from 'graphql-request';
 
 export const statsAction: Action = {
     name: "STATISTICS",
@@ -40,14 +41,87 @@ export const statsAction: Action = {
     ) => {
         const db = new Database('addresses.db');
 
-        // search for user's wallet by address
+        // Get user's adress
         const walletRecord = searchWalletRecord(db, message.userId) as WalletRecord;
+        const address = walletRecord.address;
+
+        /*//////////////////////////////////////////////////////////////
+                                   TIPS SENT
+        //////////////////////////////////////////////////////////////*/
+        const query = gql`{
+            tips(
+                where: {
+                    tipper: "${address}"
+                }
+            ) {
+                amount
+            }
+        }`;
+        const url = 'https://api.studio.thegraph.com/query/103564/tipthiscreator-basemainnet/version/latest';
+        
+        const response: any = await request(url, query);
+        const data = await response;
+        const tipsList = data.tips;
+        const amounts = tipsList.map((tip: any) => tip["amount"]);
+        console.log("Number of tips sent: ", tipsList.length);
+        console.log("Amounts: ", amounts);
+        let tipsSentText = "";
+        if (amounts.length === 0) {
+            tipsSentText += `- You have not tipped anyone yet!
+`;
+            // tipsText += `- Unfortunately, no one tipped you in the past week :(
+// `;
+        } else {
+            let totalAmount = 0;
+            for (let i = 0; i < amounts.length; i++) {
+                totalAmount += parseInt(amounts[i]);
+            }
+            tipsSentText += `- You've tipped ${amounts.length} times for a total of ${totalAmount/parseFloat("1e18")} ETH!
+`;
+        }
+
+        /*//////////////////////////////////////////////////////////////
+                                 TIPS RECEIVED
+        //////////////////////////////////////////////////////////////*/
+
+        const query2 = gql`{
+            tips(
+                where: {
+                    creator: "${address}"
+                }
+            ) {
+                amount
+            }
+        }`;
+        
+        const response2: any = await request(url, query2);
+        const data2 = await response2;
+        const tipsList2 = data2.tips;
+        const amounts2 = tipsList2.map((tip: any) => tip["amount"]);
+        console.log("Number of tips received: ", tipsList2.length);
+        console.log("Amounts: ", amounts2);
+        let tipsReceivedText = "";
+        if (amounts2.length === 0) {
+            tipsReceivedText += `- Unfortunately, no one has tipped you yet :(
+`;
+        } else {
+            let totalAmount = 0;
+            for (let i = 0; i < amounts2.length; i++) {
+                totalAmount += parseInt(amounts2[i]);
+            }
+            tipsReceivedText += `- You've been tipped ${amounts2.length} times for a total of ${totalAmount/parseFloat("1e18")} ETH!
+`;
+        }
+
+        // MORE STATS
 
         const wallet = await Wallet.import({walletId: walletRecord.walletId, seed: walletRecord.seed, networkId: networkId});
         const balance = await getBalance(wallet);
 
-        const text = "sdf";
-        // const text = `Your giveaway was successful! User with address ${winnerAddress} won ${balance} ETH! Here is the transaction hash: ${txHash}`;
+        const text = tipsSentText + tipsReceivedText + `- The creator you have tipped the most is ... (Coming Soon)
+- The user that has tipped you the most is ... (Coming Soon)
+- Your balance is: ${balance} ETH!`;
+
         callback({text: text});
         return true;
     },

@@ -196,6 +196,15 @@ your response: chat
 message: @${agentUsername} giveaway
 your response: giveaway
 
+message: @${agentUsername} GIVE IT AWAY !!!!
+your response: giveaway
+
+message: GIVEAWAYYYYY @${agentUsername}
+your response: giveaway
+
+message: @${agentUsername} GIVEAWAY
+your response: giveaway
+
 message: giveaway @${agentUsername} pay
 your response: giveaway
 
