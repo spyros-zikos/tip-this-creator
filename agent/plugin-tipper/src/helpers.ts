@@ -23,7 +23,7 @@ export const generateWallet = async () => {
 
 export const getBalance = async (wallet: Wallet) => {
     const balance = await wallet.getBalance(Coinbase.assets.Eth);
-    const balanceAdjustedForGas = parseFloat((parseFloat(balance.toString()) - 0.00002).toString().substring(0, 20)); // ~ $0.05 for gas
+    const balanceAdjustedForGas = parseFloat((parseFloat(balance.toString()) - 0.000005).toString().substring(0, 20)); // ~ $0.013 for gas
     // const balanceAdjustedForGas = parseFloat(''+balance.toString()) - 0.00002; // ~ $0.05 for gas
     if (balanceAdjustedForGas > 0) {
         return balanceAdjustedForGas;
@@ -142,7 +142,7 @@ export async function getTwitterIdFromUsername(username: string): Promise<string
                             USERNAMES
 //////////////////////////////////////////////////////////////*/
 
-export const agentUsername = "tipthiscreator";
+export const agentUsername = "tipthisc";
 
 export function getCreatorUsername(message: string) {
     const usernames = message.split("@").map(e=>e.split(" ")[0]).filter((e,i)=>(e!==agentUsername&&i!=0));

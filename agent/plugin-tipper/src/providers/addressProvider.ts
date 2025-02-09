@@ -36,6 +36,8 @@ const addressProvider: Provider = {
 
         Coinbase.configure({ apiKeyName: process.env.CDP_API_KEY_NAME, privateKey: process.env.CDP_PRIVATE_KEY });
         const db = getDB();
+        console.log(searchWalletRecord(db, stringToUuid(await getTwitterIdFromUsername('testthechar'))));
+        console.log(searchWalletRecord(db, stringToUuid(await getTwitterIdFromUsername('testthechar22'))));
         const message = _message.content.text;
         let response = `# IMPORTANT INSTRUCTIONS:
 ALWAYS RESPOND TO EVERY MESSAGE.
